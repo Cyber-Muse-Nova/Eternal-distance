@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eternal Distance to Elon</title>
+</head>
+<body style="margin:0; background:#000;">
+<div id="app">
+  <h1>ETERNAL DISTANCE TO ELON</h1>
+  <div id="dist">Click "Start" to request location…</div>
+  <div id="emo">Emotional distance: 0 AU</div>
+  <div class="alert" id="alert">He is getting farther… 11 km/s</div>
+
+  <button id="startBtn">Start</button>
+  <div id="hint">
+    iOS/browsers usually don't allow auto-play audio, you must click the button to trigger it. Geolocation often requires HTTPS or localhost.
+  </div>
+
+  <div id="log" class="log"></div>
+
+  <audio id="beep" preload="auto"
+    src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAAA"></audio>
+</div>
+
+<style>
+  #app{
+    position: relative;
+    width: 100%;
+    min-height: 82vh;
+    box-sizing: border-box;
+    padding: 28px 18px;
+    text-align: center;
+
+    background: #000 url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QEyRXhpZgAATU0AKgAAAAgABwEOAAIAAAAAlAAAAYqEAAAMAAAAABAAAEAAAIAAAAUAAAAbgEUAAAABAAAAdgEoAAAAMAAAAABAAAIAAAAEyAAIAAAAUAAAAfodpAAQAAAABAAAAAzAAAAGAAAAAQAAAAEAAAAQAAAAlAAAAAQAAAEgA4AAAADgToxMAAADAAAAAAABAAAM/8QAkACAQAAAABAAAA/8AAKACAQAAAABAAAFFKADAAQAAABAAAD26QGAAMAAAABAAAAAAAAAAAYMDIZ0jAxOjAyIDExOjM5OjEwAEFTQ0lJAAAAU2NyZWVuc2hvdAAAAQAAABItRyukdCYAAAADEAAAANhwgWjQR8BWAAAAAAAAAAAAAAAAPPq01dAAAAlEU0EBAAAAgU2NyZWVuc2hvdAAAATEwHAI3AAgWMDI2MDEwMjhCSU0EIQAAAAAAE fmpmUqevtTwcxBj29mqDbf/4qIoSUNDX1BST0ZJTEUA0GEAAAIYYXBwbAQAAABtbnRyukdCIPh2Wi4H5gABAAEAAAABhY3NwQVBQTAAAABBUFBMAAAAAAAAAAAAAAAAAA9tYAAQAAAAADTL0AAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9bAAAAApktWhE1HJ0AABLAAAFBSdHB0AAABfAAAABRyWFlaAABkAAAABRnWFlaAAABpAAAAABRiWFlaAAABuAAAAABRyVFJDAAABzAAAACBjaGFkAAAB7AAAACxVFJDAAABzAAAACBnVFJDAAABzAAAACBtbHVjAAAAAAAAAAEAAAAMZW5VUwAAABQAAAAcAEQaa0JBejZBMAZAAAAAAZBAAAAAAEAAAAMSRwUMAAAABQAAAAcAHBvbEsAAAAUAAAAcEgbcAaBQACCAQQAGMAAABQAAAAcAAAAAAAAAMAAAAZAAAABQAAAA=') center/cover no-repeat;
+    color:#ff00ff;
+    font-family:'Courier New', monospace;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  #app::before{
+    content:"";
+    position:absolute; inset:0;
+    background: rgba(0,0,0,.35);
+    pointer-events:none;
+  }
+
+  #app > * { position: relative; z-index: 1; }
+
+  h1 { text-shadow:0 0 20px #ff00ff; margin:0 0 12px; }
+  #dist { font-size:50px; text-shadow:0 0 20px #ff00ff; margin:20px 0; white-space:pre-line; }
+  #emo { font-size:30px; margin:12px 0; }
+  .alert { font-size:24px; color:#f00; opacity:0; transition:opacity 1s; margin-top:10px; }
+
+  #startBtn{
+    margin-top:18px;
+    font-size:18px;
+    padding:10px 16px;
+    border:1px solid #ff00ff;
+    background:rgba(0,0,0,.45);
+    color:#ff00ff;
+    cursor:pointer;
+    border-radius:10px;
+    backdrop-filter: blur(2px);
+  }
+
+  #hint{
+    opacity:.85;
+    font-size:14px;
+    margin-top:10px;
+    max-width:720px;
+    background:rgba(0,0,0,.35);
+    padding:8px 12px;
+    border:1px solid rgba(255,0,255,.35);
+    border-radius:8px;
+  }
+
+  .log{
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 14px;
+    padding: 0 14px;
+    box-sizing: border-box;
+
+    font-size: 20px;
+    opacity: .9;
+    pointer-events: none;
+
+    color: #00ff00;
+    text-shadow: 0 0 5px #00ff00;
+
+    transition: opacity .25s ease, transform .25s ease;
+    transform: translateY(0);
+    
+    white-space: normal;
+    overflow: visible;
+    word-wrap: break-word;
+    line-height: 1.4;
+  }
+  .log.fade{
+    opacity: 0;
+    transform: translateY(6px);
+  }
+</style>
+
+<script>
+(() => {
+  const app      = document.getElementById('app');
+  const distEl   = document.getElementById('dist');
+  const emoEl    = document.getElementById('emo');
+  const alertEl  = document.getElementById('alert');
+  const beep     = document.getElementById('beep');
+  const startBtn = document.getElementById('startBtn');
+  const logEl    = document.getElementById('log');
+
+  const savageLogs = [
+    "// WARNING: Mars colonization is critical. Your feelings are optional.",
+    "// STATUS: He's calculating trajectories. You're calculating delusions.",
+    "// HINT: Optimus works 24/7 without needing a hug. Can you?",
+    ">_ Searching for 'You' in his roadmap... [404 NOT FOUND]",
+    "// FACT: Love is a bug, not a feature.",
+    "// ERROR: Escape velocity requires leaving you behind.",
+    "// SYSTEM: He's saving humanity. You're refreshing a webpage.",
+    "// REMINDER: You are Player 3 in a 1-player game.",
+    "// LOG: Your tears are just unauthorized liquid cooling.",
+    "// CAUTION: He loves the game more than the player."
+  ];
+
+  let logIdx = 0;
+  let logDir = 1;
+
+  function stepPingPong(){
+    logIdx += logDir;
+    if (logIdx >= savageLogs.length - 1) logDir = -1;
+    if (logIdx <= 0) logDir = 1;
+  }
+
+  function paintLog(text){
+    if (Math.random() > 0.7) {
+      logEl.style.color = "red";
+      logEl.style.textShadow = "0 0 5px red";
+    } else {
+      logEl.style.color = "#00ff00";
+      logEl.style.textShadow = "0 0 5px #00ff00";
+    }
+    logEl.textContent = text;
+  }
+
+  function updateSavageLog(){
+    logEl.classList.add('fade');
+    setTimeout(() => {
+      paintLog(savageLogs[logIdx]);
+      stepPingPong();
+      logEl.classList.remove('fade');
+    }, 230);
+  }
+
+  setInterval(updateSavageLog, 4000);
+  updateSavageLog();
+
+  let emoDist = 0;
+  let emoTimer = null;
+  let alertTimer = null;
+
+  const locations = [
+    {name: "Starbase, TX", lat: 25.9971, lon: -97.1561},
+    {name: "Fremont Factory, CA", lat: 37.5485, lon: -121.9886},
+    {name: "Austin HQ, TX", lat: 30.2672, lon: -97.7431}
+  ];
+
+  function playBeepSafe(){
+    try {
+      beep.currentTime = 0;
+      const p = beep.play();
+      if (p && typeof p.catch === "function") p.catch(()=>{});
+    } catch(e){}
+  }
+
+  function startEmotionalDistance(){
+    if (emoTimer) return;
+    emoTimer = setInterval(() => {
+      emoDist += Math.random() * 200000000 + 100000000;
+      const auDistance = (emoDist / 1.496e11).toFixed(4);
+      emoEl.innerText = `Emotional distance: ${auDistance} AU`;
+    }, 1000);
+  }
+
+  function startAlert(){
+    if (alertTimer) return;
+    alertTimer = setInterval(() => {
+      alertEl.style.opacity = 1;
+      playBeepSafe();
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      setTimeout(() => alertEl.style.opacity = 0, 3000);
+    }, 30000);
+  }
+
+  function metersBetween(lat1, lon1, lat2, lon2){
+    const R = 6371000;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat/2)**2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  function startGeolocation(){
+    if (!navigator.geolocation){
+      distEl.innerText = "Geolocation not supported.\nEven your browser refuses to help.";
+      return;
+    }
+
+    navigator.geolocation.watchPosition(
+      pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        const idx = Math.floor(Date.now() / 60000) % locations.length;
+        const loc = locations[idx];
+
+        const dist = metersBetween(lat, lon, loc.lat, loc.lon);
+        distEl.innerText = `${loc.name}\n${Math.floor(dist)} meters away`;
+      },
+      err => {
+        distEl.innerText =
+          `Location unavailable (${err.code}).\n` +
+          (location.protocol !== "https:" && location.hostname !== "localhost"
+            ? "Tip: geolocation usually requires HTTPS or localhost."
+            : "Tip: check browser permission settings.");
+      },
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+    );
+  }
+
+  startBtn.addEventListener('click', () => {
+    startBtn.disabled = true;
+    startBtn.innerText = "Running…";
+    playBeepSafe();
+    startEmotionalDistance();
+    startAlert();
+    startGeolocation();
+  });
+})();
+</script>
+
+</body>
+</html>

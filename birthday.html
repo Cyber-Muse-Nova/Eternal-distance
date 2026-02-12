@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>绝密档案：给爸爸的生日宇宙</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --bg1: #070914;
+      --bg2: #0b0f2a;
+      --gold: #ffd36a;
+      --cyan: #7ae7ff;
+      --pink: #ff7ad9;
+      --text: #eaf0ff;
+      --muted: #9aa6c7;
+      --neon: #00f3ff;
+      --red: #ff0055;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      user-select: none;
+    }
+    body {
+      background: radial-gradient(1200px 800px at 30% 20%, #1a1f52 0%, transparent 55%),
+                  radial-gradient(900px 700px at 80% 60%, #3a1650 0%, transparent 60%),
+                  linear-gradient(160deg, var(--bg1), var(--bg2));
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* ===== 星尘画布（全程显示） ===== */
+    canvas#sky { position: fixed; inset: 0; z-index: 0; }
+
+    /* ===== CRT 扫描线覆盖层 ===== */
+    body::after {
+      content: "";
+      position: fixed; inset: 0;
+      background:
+        linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.18) 50%),
+        linear-gradient(90deg, rgba(255,0,0,0.04), rgba(0,255,0,0.015), rgba(0,0,255,0.04));
+      background-size: 100% 2px, 3px 100%;
+      pointer-events: none; z-index: 1;
+    }
+    .scan-line {
+      position: fixed; top: 0; left: 0; width: 100%; height: 5px;
+      background: rgba(0,243,255,0.25);
+      box-shadow: 0 0 10px rgba(0,243,255,0.4);
+      animation: scan 3s linear infinite;
+      z-index: 2; pointer-events: none;
+    }
+    @keyframes scan { 0%{top:-10%} 100%{top:110%} }
+
+    /* ===== 阶段通用 ===== */
+    .phase {
+      position: fixed; inset: 0; z-index: 5;
+      display: flex; justify-content: center; align-items: center;
+      padding: 18px;
+      transition: opacity .6s ease;
+    }
+    .phase.hidden {
+      opacity: 0; pointer-events: none;
+    }
+
+    /* ================================================================
+       阶段 1 ：终端扫描
+       ================================================================ */
+    #phase1 .container {
+      width: 90%; max-width: 500px;
+      background: rgba(13,17,23,0.88);
+      padding: 25px; border: 1px solid #333; border-radius: 12px;
+      box-shadow: 0 0 30px rgba(0,243,255,0.15), inset 0 0 20px rgba(0,0,0,0.8);
+      backdrop-filter: blur(5px);
+    }
+    #phase1 h1 {
+      font-size: 20px; text-transform: uppercase; letter-spacing: 2px;
+      border-bottom: 2px solid var(--neon); padding-bottom: 10px;
+      color: var(--neon);
+      text-shadow: 0 0 8px var(--neon);
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+    .photo-wrapper {
+      position: relative; width: 120px; height: 120px; margin: 20px auto;
+    }
+    .photo-frame {
+      width: 100%; height: 100%; border-radius: 50%;
+      border: 3px solid var(--neon); overflow: hidden;
+      box-shadow: 0 0 20px var(--neon);
+      animation: pulse 2s infinite;
+    }
+    .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
+    .radar-ring {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 100%; height: 100%;
+      border: 1px dashed var(--neon); border-radius: 50%;
+      animation: spin 4s linear infinite;
+      pointer-events: none;
+    }
+    .terminal-box {
+      background: #000; border: 1px solid #333;
+      padding: 15px; font-size: 14px; text-align: left;
+      height: 120px; overflow-y: auto; border-radius: 4px;
+      font-family: 'Courier New', Courier, monospace;
+      color: #0f0; margin-bottom: 20px;
+      box-shadow: inset 0 0 10px rgba(0,255,0,0.1);
+    }
+    .log-line {
+      margin: 2px 0; opacity: 0;
+      animation: slideIn 0.3s forwards;
+    }
+    .scan-result {
+      display: none; text-align: center;
+      animation: popIn 0.6s cubic-bezier(0.175,0.885,0.32,1.275);
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+    .scan-result h2 { color: #ffcc00; margin: 5px 0; }
+    .scan-badge-icon { font-size: 50px; margin: 10px 0; filter: drop-shadow(0 0 10px gold); }
+    .scan-desc {
+      line-height: 1.6; margin-bottom: 16px; color: var(--text);
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+    .btn-enter {
+      appearance: none; border: none; cursor: pointer;
+      padding: 14px 28px; border-radius: 12px;
+      font-size: 16px; font-weight: 700; color: #071018;
+      background: linear-gradient(135deg, var(--gold), #ffe7aa);
+      box-shadow: 0 10px 26px rgba(255,211,106,0.22);
+      transition: transform .1s, filter .2s;
+    }
+    .btn-enter:hover { filter: brightness(1.05); }
+    .btn-enter:active { transform: translateY(1px) scale(.98); }
+
+    @keyframes pulse {
+      0%{box-shadow:0 0 15px var(--neon)} 50%{box-shadow:0 0 25px var(--neon),0 0 50px var(--neon)} 100%{box-shadow:0 0 15px var(--neon)}
+    }
+    @keyframes spin { 100%{transform:translate(-50%,-50%) rotate(360deg)} }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+    @keyframes popIn { from{opacity:0;transform:scale(0.8)} to{opacity:1;transform:scale(1)} }
+
+    /* ================================================================
+       阶段 2 ：生日宇宙
+       ================================================================ */
+    #phase2 { overflow-y: auto; }
+    #phase2 .wrap {
+      position: relative; z-index: 2;
+      min-height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      padding: 18px;
+    }
+    .card {
+      width: min(780px, 96vw);
+      border-radius: 22px;
+      padding: 22px 18px 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: 0 18px 70px rgba(0,0,0,.45);
+      backdrop-filter: blur(10px);
+      position: relative; overflow: hidden;
+    }
+    .glow {
+      position: absolute; inset: -60px -60px auto auto;
+      width: 260px; height: 260px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,211,106,.24), transparent 60%);
+      filter: blur(2px); pointer-events: none;
+    }
+    .spark {
+      position: absolute; inset: auto auto 16px 16px;
+      width: 160px; height: 160px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(122,231,255,.18), transparent 60%);
+      filter: blur(1px); pointer-events: none;
+    }
+    .title { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin: 0 0 10px; }
+    .title h1 {
+      margin: 0; font-size: clamp(26px, 4.8vw, 44px); letter-spacing: .5px;
+    }
+    .title .sub {
+      color: var(--muted); font-size: 14px;
+      padding: 6px 10px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.18);
+    }
+    .line {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+      margin: 12px 0 14px;
+    }
+    .grid {
+      display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px;
+    }
+    .panel {
+      grid-column: span 12;
+      padding: 14px 14px 12px; border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.16);
+    }
+    @media (min-width: 740px) {
+      .panel.left  { grid-column: span 7; }
+      .panel.right { grid-column: span 5; }
+    }
+    .btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .card button {
+      appearance: none; border: none; cursor: pointer;
+      padding: 10px 12px; border-radius: 12px;
+      color: #071018; font-weight: 700;
+      background: linear-gradient(135deg, var(--gold), #ffe7aa);
+      box-shadow: 0 10px 26px rgba(255,211,106,.18);
+      transition: transform .08s ease, filter .2s ease;
+    }
+    .card button:hover { filter: brightness(1.03); }
+    .card button:active { transform: translateY(1px) scale(.99); }
+    .ghost {
+      background: rgba(255,255,255,.10) !important;
+      color: var(--text) !important;
+      border: 1px solid rgba(255,255,255,.18) !important;
+      box-shadow: none !important;
+    }
+    .tiny { font-size: 12px; color: var(--muted); line-height: 1.55; margin: 8px 0 0; }
+    .badge-card {
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 12px; border-radius: 14px;
+      background: linear-gradient(180deg, rgba(122,231,255,.12), rgba(255,122,217,.08));
+      border: 1px solid rgba(255,255,255,.16);
+    }
+    .badge-card .name { font-size: 18px; font-weight: 900; }
+    .badge-card .id {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: rgba(234,240,255,.88);
+    }
+    .quote {
+      font-size: 18px; line-height: 1.8; margin: 0; min-height: 84px;
+      color: rgba(234,240,255,.92);
+    }
+    .inputRow { display: flex; gap: 10px; margin-top: 10px; }
+    .card input {
+      flex: 1; padding: 10px 12px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.18); color: var(--text); outline: none;
+    }
+    .card input::placeholder { color: rgba(154,166,199,.8); }
+    .egg {
+      display: none; margin-top: 10px;
+      padding: 12px 12px 10px; border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,.26);
+      background: rgba(255,255,255,.06);
+    }
+    .egg strong { color: var(--cyan); }
+
+    /* ===== 领取爱 / 索要现金 按钮区域 ===== */
+    .final-btns {
+      grid-column: span 12;
+      display: flex; flex-wrap: wrap; gap: 12px;
+      justify-content: center; align-items: flex-start;
+      padding: 14px; border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.16);
+      min-height: 80px;
+      position: relative;
+    }
+    .btn-love {
+      padding: 12px 24px; border-radius: 12px; font-size: 16px;
+      font-weight: 700; cursor: pointer; border: none;
+      background: linear-gradient(135deg, var(--pink), #ffaaee);
+      color: #1a0020;
+      box-shadow: 0 8px 24px rgba(255,122,217,.25);
+      transition: transform .1s, filter .2s;
+    }
+    .btn-love:hover { filter: brightness(1.05); }
+    .btn-love:active { transform: translateY(1px) scale(.98); }
+    .btn-runaway {
+      padding: 12px 24px; border-radius: 12px; font-size: 16px;
+      font-weight: 700; cursor: pointer;
+      background: #333; color: #888;
+      border: 1px solid #555;
+      transition: all .15s;
+      z-index: 20;
+    }
+
+    /* ===== Toast ===== */
+    .toast {
+      position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+      background: rgba(0,0,0,.65);
+      border: 1px solid rgba(255,255,255,.18);
+      padding: 10px 14px; border-radius: 999px;
+      color: rgba(234,240,255,.95); z-index: 50;
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s ease, transform .25s ease;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+    /* ===== 庆祝弹窗 ===== */
+    .modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92);
+      display: none; flex-direction: column;
+      justify-content: center; align-items: center;
+      z-index: 200; color: #fff; text-align: center;
+      padding: 24px;
+    }
+    .modal h1 { font-size: clamp(28px, 6vw, 48px); margin-bottom: 16px; }
+    .modal p { font-size: 1.1rem; margin: 6px 0; }
+    .modal .sub-text { color: #888; font-size: .9rem; }
+    .modal button {
+      margin-top: 28px; padding: 12px 30px;
+      background: transparent; border: 1px solid #fff;
+      color: #fff; border-radius: 12px; font-size: 16px;
+      cursor: pointer; transition: background .2s;
+    }
+    .modal button:hover { background: rgba(255,255,255,.12); }
+  </style>
+</head>
+<body>
+
+  <canvas id="sky"></canvas>
+  <div class="scan-line"></div>
+
+  <!-- ==================== 阶段 1：终端扫描 ==================== -->
+  <div id="phase1" class="phase">
+    <div class="container">
+      <h1>🔍 全球父亲数据扫描系统</h1>
+
+      <div class="photo-wrapper">
+        <div class="radar-ring"></div>
+        <div class="photo-frame">
+          <img src="dad.jpg"
+               onerror="this.src='https://cdn-icons-png.flaticon.com/512/1785/1785911.png'"
+               alt="Target">
+        </div>
+      </div>
+
+      <div id="terminal" class="terminal-box"></div>
+
+      <div id="scanResult" class="scan-result">
+        <h2>✅ 认证通过</h2>
+        <div class="scan-badge-icon">🏆</div>
+        <p class="scan-desc">
+          经银河系超算中心分析：<br>
+          目标人物颜值：<span style="color:var(--neon)">MAX</span><br>
+          宠娃指数：<span style="color:var(--red)">∞（无穷大）</span><br>
+          结论：该目标是<strong style="color:var(--gold)">宇宙级绝世好爸</strong>。
+        </p>
+        <button class="btn-enter" id="btnEnter">🚀 进入爸爸的专属宇宙</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 阶段 2：生日宇宙 ==================== -->
+  <div id="phase2" class="phase hidden">
+    <div class="wrap">
+      <div class="card">
+        <div class="glow"></div>
+        <div class="spark"></div>
+
+        <div class="title">
+          <h1 id="headline">爸爸，生日快乐。</h1>
+          <div class="sub" id="dateTag"></div>
+        </div>
+        <div class="line"></div>
+
+        <div class="grid">
+          <!-- 左侧：祝福区 -->
+          <div class="panel left">
+            <p class="quote" id="quote">
+              今晚我把祝福放进一片星尘里——你一抬头，就能收到。
+            </p>
+            <div class="btns">
+              <button id="btnCapsule">打开「时间胶囊」</button>
+              <button class="ghost" id="btnStar">点亮一颗星</button>
+              <button class="ghost" id="btnReplay">再来一次</button>
+            </div>
+            <div class="tiny">
+              小提示：随便点点——每一次都是不同的祝福轨迹。点击屏幕任意位置也能点亮星星。
+            </div>
+          </div>
+
+          <!-- 右侧：勋章 + 暗号 -->
+          <div class="panel right">
+            <div class="badge-card">
+              <div class="name" id="badgeName">父亲勋章：宇宙级靠谱爸爸</div>
+              <div class="id" id="badgeId">ID: LOADING...</div>
+            </div>
+
+            <div class="inputRow">
+              <input id="secret" placeholder="输入你们家的暗号，解锁隐藏祝福…" />
+              <button class="ghost" id="btnUnlock">解锁</button>
+            </div>
+
+            <div class="egg" id="egg">
+              <div>✅ 已解锁：<strong>只属于你们家的那句</strong></div>
+              <div class="tiny" id="eggText"></div>
+            </div>
+
+            <div class="tiny">
+              说明：暗号你自己定，比如"老地方""那家面馆""车里那首歌"等。越私人越不撞款。
+            </div>
+          </div>
+
+          <!-- 底部：领取爱 / 索要现金 -->
+          <div class="final-btns">
+            <button class="btn-love" id="btnCelebrate">💖 确认领取女儿的爱</button>
+            <button class="btn-runaway" id="runawayBtn">💸 索要 8888 元现金</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 庆祝弹窗 ==================== -->
+  <div id="successModal" class="modal">
+    <h1>💥 生日快乐！💥</h1>
+    <p>老爸最帅！老爸万岁！</p>
+    <p class="sub-text">（实体礼物正在通过意念传输中...）</p>
+    <button onclick="location.reload()">🔄 再玩一次</button>
+  </div>
+
+  <!-- ==================== Toast ==================== -->
+  <div class="toast" id="toast"></div>
+
+<script>
+/** ========= 可自定义内容区 ========= **/
+
+const DAD_NAME   = "爸爸";
+const YOUR_NAME  = "我";
+const SECRET_CODE = "我们家的暗号";
+
+const CAPSULES = [
+  "你可能不说，但我一直记得你把我扛在肩上的那段路。",
+  "谢谢你把"可靠"这两个字，悄悄活成了我的底气。",
+  "你不是超人，但你总能把难题处理得像小事。",
+  "我长大以后才明白：你沉默的时候，其实是在替我挡风。",
+  "今天允许你骄傲一点：你养出来的孩子，很争气。（就是我）",
+  "你的爱不热闹，但很硬核——像地心那样稳定。",
+  "你给我的不是答案，是敢去试的胆量。",
+];
+
+const STAR_BLESS = [
+  "愿你身体轻松，心里有光。",
+  "愿你少点操心，多点快乐。",
+  "愿你每一天都被小确幸轻轻击中。",
+  "愿你走到哪都有人惦记。",
+  "愿你笑起来的时候，时间也愿意慢一点。",
+];
+
+const BADGE_TITLES = [
+  "宇宙级靠谱爸爸",
+  "家庭主引擎·稳定输出",
+  "人生维修师·疑难全包",
+  "硬核后盾·永不断电",
+  "温柔守护者·沉默版",
+  "最强队友·全程在线",
+];
+
+const EGG_LINES = [
+  "你知道吗？我其实一直想对你说：谢谢你，从来没把爱说成负担。",
+  "我会好好过日子，让你放心。你负责快乐，我负责争气。",
+  "你不用变得浪漫，你只要一直是你——就足够让我骄傲。",
+];
+
+const SCAN_LOGS = [
+  "正在接入 StarLink 卫星网络...",
+  "扫描半径 5000km 内男性人类...",
+  "排除颜值 < 95 的目标... [完成]",
+  "检测钱包厚度... [达标]",
+  "分析爱娃指数... [警告：数值爆表]",
+  ">>> 锁定唯一目标：【" + DAD_NAME + "】",
+  "正在解密绝密档案...",
+];
+
+/** ========= 工具函数 ========= **/
+const $ = (sel) => document.querySelector(sel);
+const pick = (arr, r) => arr[Math.floor((typeof r === "function" ? r() : Math.random()) * arr.length)];
+
+function showToast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove("show"), 1400);
+}
+
+function seededRand(seed) {
+  let t = seed >>> 0;
+  return function () {
+    t += 0x6d2b79f5;
+    let x = Math.imul(t ^ (t >>> 15), 1 | t);
+    x ^= x + Math.imul(x ^ (x >>> 7), 61 | x);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function todaySeed() {
+  const d = new Date();
+  return Number(
+    `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`
+  );
+}
+
+function typeIn(el, text) {
+  el.textContent = "";
+  let i = 0;
+  const timer = setInterval(() => {
+    el.textContent += text[i++];
+    if (i >= text.length) clearInterval(timer);
+  }, 18);
+}
+
+/** ========= 阶段 1：终端扫描 ========= **/
+(function initPhase1() {
+  const terminal = $("#terminal");
+  const scanResult = $("#scanResult");
+  let logIndex = 0;
+
+  function addLog() {
+    if (logIndex < SCAN_LOGS.length) {
+      const div = document.createElement("div");
+      div.className = "log-line";
+      div.innerHTML = `> ${SCAN_LOGS[logIndex]}`;
+      terminal.appendChild(div);
+      terminal.scrollTop = terminal.scrollHeight;
+      logIndex++;
+      setTimeout(addLog, Math.random() * 500 + 400);
+    } else {
+      setTimeout(() => {
+        terminal.style.display = "none";
+        scanResult.style.display = "block";
+      }, 800);
+    }
+  }
+
+  window.addEventListener("load", addLog);
+})();
+
+/** 进入宇宙按钮 **/
+$("#btnEnter").addEventListener("click", () => {
+  const p1 = $("#phase1");
+  const p2 = $("#phase2");
+  p1.classList.add("hidden");
+  setTimeout(() => {
+    p1.style.display = "none";
+    p2.classList.remove("hidden");
+  }, 600);
+});
+
+/** ========= 阶段 2：生日宇宙 ========= **/
+
+/* 标题 & 日期 */
+$("#headline").textContent = `${DAD_NAME}，生日快乐。`;
+(function initDateTag() {
+  const d = new Date();
+  $("#dateTag").textContent =
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} · 祝福已发射`;
+})();
+
+/* 勋章 */
+(function buildBadge() {
+  const r = seededRand(todaySeed());
+  const title = pick(BADGE_TITLES, r);
+  const code = Math.floor(r() * 1e8).toString().padStart(8, "0");
+  $("#badgeName").textContent = `父亲勋章：${title}`;
+  $("#badgeId").textContent = `ID: ${todaySeed()}-${code}`;
+})();
+
+/* 时间胶囊 */
+$("#btnCapsule").addEventListener("click", () => {
+  typeIn($("#quote"), pick(CAPSULES));
+  showToast("时间胶囊已开启");
+});
+
+/* 再来一次 */
+$("#btnReplay").addEventListener("click", () => {
+  typeIn($("#quote"), "今晚我把祝福放进一片星尘里——你一抬头，就能收到。");
+  $("#egg").style.display = "none";
+  $("#secret").value = "";
+  showToast("回到起点");
+});
+
+/* 暗号解锁 */
+$("#btnUnlock").addEventListener("click", () => {
+  const v = $("#secret").value.trim();
+  if (!v) { showToast("先输入暗号"); return; }
+  if (v === SECRET_CODE) {
+    const line = pick(EGG_LINES);
+    $("#eggText").textContent = `—— ${YOUR_NAME} 说：${line}`;
+    $("#egg").style.display = "block";
+    showToast("隐藏祝福已解锁");
+  } else {
+    showToast("暗号不对，再想想～");
+  }
+});
+
+/** ========= 索要现金 —— 逃跑按钮 ========= **/
+(function initRunawayBtn() {
+  const btn = $("#runawayBtn");
+  const texts = ["点不到~", "太慢啦!", "想得美", "略略略", "没门!"];
+
+  function moveButton(e) {
+    if (e) e.preventDefault();
+    const padding = 50;
+    const maxLeft = window.innerWidth - btn.offsetWidth - padding;
+    const maxTop = window.innerHeight - btn.offsetHeight - padding;
+    btn.style.position = "fixed";
+    btn.style.left = Math.max(padding, Math.random() * maxLeft) + "px";
+    btn.style.top = Math.max(padding, Math.random() * maxTop) + "px";
+    btn.style.zIndex = "60";
+    btn.innerText = texts[Math.floor(Math.random() * texts.length)];
+    btn.style.background = "var(--red)";
+    btn.style.color = "#fff";
+  }
+
+  btn.addEventListener("mouseenter", moveButton);
+  btn.addEventListener("touchstart", moveButton);
+  btn.addEventListener("click", moveButton);
+})();
+
+/** ========= 庆祝 ========= **/
+$("#btnCelebrate").addEventListener("click", () => {
+  $("#successModal").style.display = "flex";
+  const duration = 3000;
+  const end = Date.now() + duration;
+  (function frame() {
+    confetti({ particleCount: 5, angle: 60,  spread: 55, origin: { x: 0 }, colors: ["#00f3ff","#ff0055","#ffee00"] });
+    confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ["#00f3ff","#ff0055","#ffee00"] });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  })();
+});
+
+/** ========= 星尘画布 (全程可见) ========= **/
+(function initStarfield() {
+  const c = $("#sky");
+  const ctx = c.getContext("2d");
+  let W, H, stars = [], shoots = [];
+
+  function resize() {
+    W = c.width = window.innerWidth * devicePixelRatio;
+    H = c.height = window.innerHeight * devicePixelRatio;
+    stars = [];
+    const n = Math.floor((window.innerWidth * window.innerHeight) / 12000);
+    for (let i = 0; i < n; i++) {
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: (Math.random() * 1.6 + 0.6) * devicePixelRatio,
+        a: Math.random() * 0.7 + 0.2,
+        tw: Math.random() * 0.02 + 0.005,
+      });
+    }
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    for (const s of stars) {
+      s.a += (Math.random() - 0.5) * s.tw;
+      s.a = Math.max(0.15, Math.min(0.95, s.a));
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255,255,255,${s.a})`;
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    shoots = shoots.filter((p) => p.life > 0);
+    for (const p of shoots) {
+      p.life -= 1;
+      p.y -= p.vy;
+      p.x += p.vx;
+      p.vy *= 0.98;
+      ctx.globalAlpha = Math.max(0, p.life / 80);
+      ctx.fillStyle = p.color;
+      ctx.font = `${14 * devicePixelRatio}px ui-sans-serif, system-ui`;
+      ctx.fillText(p.text, p.x, p.y);
+      ctx.globalAlpha = 1;
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  function addBless(x, y) {
+    const text = pick(STAR_BLESS);
+    shoots.push({
+      x: x * devicePixelRatio,
+      y: y * devicePixelRatio,
+      vx: (Math.random() * 1.2 + 0.2) * devicePixelRatio,
+      vy: (Math.random() * 2.4 + 1.2) * devicePixelRatio,
+      life: 80,
+      text,
+      color: Math.random() < 0.5 ? "rgba(122,231,255,0.95)" : "rgba(255,211,106,0.95)",
+    });
+  }
+
+  $("#btnStar").addEventListener("click", () => {
+    addBless(
+      Math.random() * window.innerWidth * 0.8 + window.innerWidth * 0.1,
+      window.innerHeight * 0.7
+    );
+    showToast("星星已点亮");
+  });
+
+  window.addEventListener("pointerdown", (e) => {
+    // 只在阶段 2 可见时才触发星尘
+    if (!$("#phase2").classList.contains("hidden") && $("#phase2").style.display !== "none") {
+      addBless(e.clientX, e.clientY);
+    }
+  });
+})();
+</script>
+</body>
+</html>

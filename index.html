@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eternal Distance to Elon</title>
+  <meta name="description" content="Show how close you are to Elon Musk — physically and emotionally.">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+
+    #app {
+      position: relative;
+      width: 100%; height: 100vh;
+      padding: 28px 18px;
+      text-align: center;
+
+      background: radial-gradient(ellipse at 50% 30%, #1a0025 0%, #0a0a0a 70%, #000 100%);
+      color: #ff00ff;
+      font-family: 'Courier New', monospace;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Animated starfield background */
+    #app::before {
+      content: "";
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,.7), transparent),
+        radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,.5), transparent),
+        radial-gradient(1.5px 1.5px at 50% 10%, rgba(255,255,255,.8), transparent),
+        radial-gradient(1px 1px at 70% 40%, rgba(255,255,255,.4), transparent),
+        radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,.6), transparent),
+        radial-gradient(1.5px 1.5px at 15% 85%, rgba(255,255,255,.5), transparent),
+        radial-gradient(1px 1px at 60% 90%, rgba(255,255,255,.4), transparent),
+        radial-gradient(1px 1px at 85% 15%, rgba(255,255,255,.6), transparent),
+        radial-gradient(2px 2px at 40% 50%, rgba(255,0,255,.3), transparent),
+        radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,.5), transparent);
+      background-size: 200% 200%;
+      animation: drift 60s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes drift {
+      0%   { background-position: 0% 0%; }
+      100% { background-position: 100% 100%; }
+    }
+
+    #app > * { position: relative; z-index: 1; }
+
+    h1 {
+      font-size: clamp(22px, 5vw, 42px);
+      text-shadow: 0 0 20px #ff00ff, 0 0 60px rgba(255,0,255,.3);
+      margin: 0 0 12px;
+      letter-spacing: 2px;
+    }
+
+    #dist {
+      font-size: clamp(28px, 7vw, 50px);
+      text-shadow: 0 0 20px #ff00ff;
+      margin: 20px 0;
+      white-space: pre-line;
+      line-height: 1.3;
+    }
+
+    #emo {
+      font-size: clamp(18px, 4vw, 30px);
+      margin: 12px 0;
+    }
+
+    .alert {
+      font-size: clamp(16px, 3.5vw, 24px);
+      color: #f00;
+      opacity: 0;
+      transition: opacity 1s;
+      margin-top: 10px;
+    }
+
+    #startBtn {
+      margin-top: 18px;
+      font-size: 18px;
+      padding: 12px 28px;
+      border: 1px solid #ff00ff;
+      background: rgba(255,0,255,.1);
+      color: #ff00ff;
+      cursor: pointer;
+      border-radius: 10px;
+      backdrop-filter: blur(4px);
+      transition: background .3s, box-shadow .3s;
+      letter-spacing: 1px;
+    }
+
+    #startBtn:hover:not(:disabled) {
+      background: rgba(255,0,255,.25);
+      box-shadow: 0 0 20px rgba(255,0,255,.4);
+    }
+
+    #startBtn:disabled {
+      opacity: .5;
+      cursor: default;
+    }
+
+    #hint {
+      opacity: .75;
+      font-size: clamp(11px, 2vw, 14px);
+      margin-top: 10px;
+      max-width: 720px;
+      background: rgba(0,0,0,.45);
+      padding: 8px 14px;
+      border: 1px solid rgba(255,0,255,.25);
+      border-radius: 8px;
+    }
+
+    .log {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: 18px;
+      padding: 0 18px;
+
+      font-size: clamp(14px, 2.8vw, 20px);
+      opacity: .9;
+      pointer-events: none;
+
+      color: #00ff00;
+      text-shadow: 0 0 5px #00ff00;
+
+      transition: opacity .3s ease, transform .3s ease;
+      transform: translateY(0);
+
+      white-space: normal;
+      overflow: visible;
+      word-wrap: break-word;
+      line-height: 1.4;
+    }
+
+    .log.fade {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <h1>ETERNAL DISTANCE TO ELON</h1>
+  <div id="dist">Click "Start" to request location…</div>
+  <div id="emo">Emotional distance: 0 AU</div>
+  <div class="alert" id="alert">He is getting farther… 11 km/s</div>
+
+  <button id="startBtn">Start</button>
+  <div id="hint">
+    Geolocation requires HTTPS. Click "Start" and allow location access in your browser.
+  </div>
+
+  <div id="log" class="log"></div>
+
+  <audio id="beep" preload="auto"
+    src="data:audio/wav;base64,UklGRl4AAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YToAAAAAAAAAAAAAgD+AAIB/AACAPwAAAAAAAAAAAACAvwAAgL8AAIC/AAAAAAAAAAAAgD+AAIB/AAA="></audio>
+</div>
+
+<script>
+(() => {
+  const distEl   = document.getElementById('dist');
+  const emoEl    = document.getElementById('emo');
+  const alertEl  = document.getElementById('alert');
+  const beep     = document.getElementById('beep');
+  const startBtn = document.getElementById('startBtn');
+  const logEl    = document.getElementById('log');
+
+  const savageLogs = [
+    "// WARNING: Mars colonization is critical. Your feelings are optional.",
+    "// STATUS: He's calculating trajectories. You're calculating delusions.",
+    "// HINT: Optimus works 24/7 without needing a hug. Can you?",
+    ">_ Searching for 'You' in his roadmap... [404 NOT FOUND]",
+    "// FACT: Love is a bug, not a feature.",
+    "// ERROR: Escape velocity requires leaving you behind.",
+    "// SYSTEM: He's saving humanity. You're refreshing a webpage.",
+    "// REMINDER: You are Player 3 in a 1-player game.",
+    "// LOG: Your tears are just unauthorized liquid cooling.",
+    "// CAUTION: He loves the game more than the player."
+  ];
+
+  let logIdx = 0;
+  let logDir = 1;
+
+  function stepPingPong() {
+    logIdx += logDir;
+    if (logIdx >= savageLogs.length - 1) logDir = -1;
+    if (logIdx <= 0) logDir = 1;
+  }
+
+  function paintLog(text) {
+    if (Math.random() > 0.7) {
+      logEl.style.color = "red";
+      logEl.style.textShadow = "0 0 5px red";
+    } else {
+      logEl.style.color = "#00ff00";
+      logEl.style.textShadow = "0 0 5px #00ff00";
+    }
+    logEl.textContent = text;
+  }
+
+  function updateSavageLog() {
+    logEl.classList.add('fade');
+    setTimeout(() => {
+      paintLog(savageLogs[logIdx]);
+      stepPingPong();
+      logEl.classList.remove('fade');
+    }, 300);
+  }
+
+  setInterval(updateSavageLog, 4000);
+  updateSavageLog();
+
+  let emoDist = 0;
+  let emoTimer = null;
+  let alertTimer = null;
+
+  const locations = [
+    { name: "Starbase, TX",        lat: 25.9971, lon: -97.1561 },
+    { name: "Fremont Factory, CA", lat: 37.5485, lon: -121.9886 },
+    { name: "Austin HQ, TX",       lat: 30.2672, lon: -97.7431 }
+  ];
+
+  function playBeepSafe() {
+    try {
+      beep.currentTime = 0;
+      const p = beep.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch (e) {}
+  }
+
+  function startEmotionalDistance() {
+    if (emoTimer) return;
+    emoTimer = setInterval(() => {
+      emoDist += Math.random() * 200000000 + 100000000;
+      const auDistance = (emoDist / 1.496e11).toFixed(4);
+      emoEl.innerText = "Emotional distance: " + auDistance + " AU";
+    }, 1000);
+  }
+
+  function startAlert() {
+    if (alertTimer) return;
+    alertTimer = setInterval(() => {
+      alertEl.style.opacity = 1;
+      playBeepSafe();
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      setTimeout(() => { alertEl.style.opacity = 0; }, 3000);
+    }, 30000);
+  }
+
+  function metersBetween(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function formatDistance(meters) {
+    if (meters >= 1000) {
+      return (meters / 1000).toFixed(1) + " km";
+    }
+    return Math.floor(meters) + " m";
+  }
+
+  function startGeolocation() {
+    if (!navigator.geolocation) {
+      distEl.innerText = "Geolocation not supported.\nEven your browser refuses to help.";
+      return;
+    }
+
+    navigator.geolocation.watchPosition(
+      pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        const idx = Math.floor(Date.now() / 60000) % locations.length;
+        const loc = locations[idx];
+
+        const dist = metersBetween(lat, lon, loc.lat, loc.lon);
+        distEl.innerText = loc.name + "\n" + formatDistance(dist) + " away";
+      },
+      err => {
+        distEl.innerText =
+          "Location unavailable (" + err.code + ").\n" +
+          (location.protocol !== "https:" && location.hostname !== "localhost"
+            ? "Tip: geolocation requires HTTPS or localhost."
+            : "Tip: check browser permission settings.");
+      },
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+    );
+  }
+
+  startBtn.addEventListener('click', () => {
+    startBtn.disabled = true;
+    startBtn.innerText = "Running…";
+    playBeepSafe();
+    startEmotionalDistance();
+    startAlert();
+    startGeolocation();
+  });
+})();
+</script>
+
+</body>
+</html>

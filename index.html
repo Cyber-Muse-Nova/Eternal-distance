@@ -66,6 +66,28 @@
       letter-spacing: 2px;
     }
 
+    #locLabel {
+      font-size: clamp(12px, 2.5vw, 15px);
+      color: #ff80ff;
+      opacity: .85;
+      margin-bottom: 2px;
+      letter-spacing: .5px;
+    }
+
+    #locHint {
+      font-size: clamp(11px, 2.2vw, 14px);
+      color: #ffcc00;
+      text-shadow: 0 0 8px rgba(255,204,0,.5);
+      margin-bottom: 4px;
+      letter-spacing: 1px;
+      animation: hintPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes hintPulse {
+      0%, 100% { opacity: .6; }
+      50% { opacity: 1; }
+    }
+
     #locSelect {
       font-family: 'Courier New', monospace;
       font-size: clamp(13px, 2.8vw, 16px);
@@ -199,6 +221,9 @@
 
 <div id="app">
   <h1>ETERNAL DISTANCE TO ELON</h1>
+
+  <div id="locLabel">Where is Elon right now?</div>
+  <div id="locHint">&#11015; tap to switch location &#11015;</div>
 
   <select id="locSelect">
     <optgroup label="── EARTH ──">
@@ -399,7 +424,12 @@
     distEl.innerText = "GPS unavailable, estimating via IP…";
     locSrc.innerText = "";
 
+    // China-friendly APIs first, then international fallbacks
     const apis = [
+      {
+        url: "https://api.ip.sb/geoip",
+        extract: d => d.latitude && d.longitude ? { lat: d.latitude, lon: d.longitude } : null
+      },
       {
         url: "https://ipapi.co/json/",
         extract: d => d.latitude && d.longitude ? { lat: d.latitude, lon: d.longitude } : null
@@ -482,6 +512,13 @@
       { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
   }
+
+  // Randomize initial Earth location on page load
+  const earthIndexes = locations
+    .map((loc, i) => loc.type === "earth" ? i : -1)
+    .filter(i => i !== -1);
+  const randomEarth = earthIndexes[Math.floor(Math.random() * earthIndexes.length)];
+  locSelect.value = String(randomEarth);
 
   // Keep space distances drifting
   setInterval(() => {

@@ -399,7 +399,12 @@
     distEl.innerText = "GPS unavailable, estimating via IP…";
     locSrc.innerText = "";
 
+    // China-friendly APIs first, then international fallbacks
     const apis = [
+      {
+        url: "https://api.ip.sb/geoip",
+        extract: d => d.latitude && d.longitude ? { lat: d.latitude, lon: d.longitude } : null
+      },
       {
         url: "https://ipapi.co/json/",
         extract: d => d.latitude && d.longitude ? { lat: d.latitude, lon: d.longitude } : null

@@ -17,7 +17,7 @@
     #app {
       position: relative;
       width: 100%; height: 100vh;
-      padding: 28px 18px;
+      padding: 24px 18px;
       text-align: center;
 
       background: radial-gradient(ellipse at 50% 30%, #1a0025 0%, #0a0a0a 70%, #000 100%);
@@ -62,35 +62,64 @@
     h1 {
       font-size: clamp(20px, 5vw, 38px);
       text-shadow: 0 0 20px #ff00ff, 0 0 60px rgba(255,0,255,.3);
-      margin: 0 0 12px;
+      margin: 0 0 8px;
       letter-spacing: 2px;
+    }
+
+    #locSelect {
+      font-family: 'Courier New', monospace;
+      font-size: clamp(13px, 2.8vw, 16px);
+      padding: 8px 14px;
+      margin: 6px 0;
+      border: 1px solid #ff00ff;
+      border-radius: 8px;
+      background: rgba(255,0,255,.08);
+      color: #ff00ff;
+      outline: none;
+      cursor: pointer;
+      text-align: center;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ff00ff' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+
+    #locSelect:focus {
+      box-shadow: 0 0 15px rgba(255,0,255,.4);
+    }
+
+    #locSelect option {
+      background: #1a0025;
+      color: #ff00ff;
     }
 
     #dist {
       font-size: clamp(24px, 6vw, 46px);
       text-shadow: 0 0 20px #ff00ff;
-      margin: 20px 0;
+      margin: 14px 0;
       white-space: pre-line;
       line-height: 1.3;
     }
 
     #emo {
-      font-size: clamp(16px, 3.5vw, 26px);
-      margin: 12px 0;
+      font-size: clamp(14px, 3vw, 22px);
+      margin: 8px 0;
     }
 
     .alert {
-      font-size: clamp(14px, 3vw, 22px);
+      font-size: clamp(13px, 2.8vw, 20px);
       color: #f00;
       opacity: 0;
       transition: opacity 1s;
-      margin-top: 10px;
+      margin-top: 6px;
     }
 
     .btn {
-      margin-top: 14px;
-      font-size: 16px;
-      padding: 12px 28px;
+      margin-top: 10px;
+      font-size: 15px;
+      padding: 10px 24px;
       border: 1px solid #ff00ff;
       background: rgba(255,0,255,.1);
       color: #ff00ff;
@@ -114,7 +143,7 @@
 
     #btnRow {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
       justify-content: center;
     }
@@ -123,11 +152,11 @@
 
     #hint {
       opacity: .75;
-      font-size: clamp(11px, 2vw, 14px);
-      margin-top: 10px;
+      font-size: clamp(10px, 1.8vw, 13px);
+      margin-top: 8px;
       max-width: 720px;
       background: rgba(0,0,0,.45);
-      padding: 8px 14px;
+      padding: 6px 12px;
       border: 1px solid rgba(255,0,255,.25);
       border-radius: 8px;
     }
@@ -135,16 +164,16 @@
     #locSrc {
       font-size: clamp(10px, 1.8vw, 12px);
       opacity: .5;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .log {
       position: absolute;
       left: 0; right: 0;
-      bottom: 18px;
+      bottom: 14px;
       padding: 0 18px;
 
-      font-size: clamp(13px, 2.6vw, 18px);
+      font-size: clamp(12px, 2.4vw, 17px);
       opacity: .9;
       pointer-events: none;
 
@@ -170,6 +199,22 @@
 
 <div id="app">
   <h1>ETERNAL DISTANCE TO ELON</h1>
+
+  <select id="locSelect">
+    <optgroup label="── EARTH ──">
+      <option value="0">Starbase / Boca Chica, TX</option>
+      <option value="1">SpaceX HQ, Hawthorne, CA</option>
+      <option value="2">Tesla Fremont Factory, CA</option>
+      <option value="3">Tesla Gigafactory, Austin, TX</option>
+      <option value="4">Tesla Gigafactory, Shanghai</option>
+      <option value="5">Tesla Gigafactory, Berlin</option>
+    </optgroup>
+    <optgroup label="── SPACE ──">
+      <option value="6">The Moon</option>
+      <option value="7">Mars</option>
+    </optgroup>
+  </select>
+
   <div id="dist">Click "Start" to begin…</div>
   <div id="emo">Emotional distance: 0 AU</div>
   <div class="alert" id="alert">He is getting farther… 11 km/s</div>
@@ -179,8 +224,8 @@
     <button id="retryBtn" class="btn">Retry Location</button>
   </div>
   <div id="hint">
-    Click "Start" and allow location access when prompted.<br>
-    If location is denied, your IP address will be used to estimate distance.
+    Pick where Elon might be, then click "Start".<br>
+    If location is denied, your IP will be used to estimate distance.
   </div>
   <div id="locSrc"></div>
 
@@ -192,14 +237,15 @@
 
 <script>
 (() => {
-  const distEl   = document.getElementById('dist');
-  const emoEl    = document.getElementById('emo');
-  const alertEl  = document.getElementById('alert');
-  const beep     = document.getElementById('beep');
-  const startBtn = document.getElementById('startBtn');
-  const retryBtn = document.getElementById('retryBtn');
-  const logEl    = document.getElementById('log');
-  const locSrc   = document.getElementById('locSrc');
+  const distEl    = document.getElementById('dist');
+  const emoEl     = document.getElementById('emo');
+  const alertEl   = document.getElementById('alert');
+  const beep      = document.getElementById('beep');
+  const startBtn  = document.getElementById('startBtn');
+  const retryBtn  = document.getElementById('retryBtn');
+  const logEl     = document.getElementById('log');
+  const locSrc    = document.getElementById('locSrc');
+  const locSelect = document.getElementById('locSelect');
 
   const savageLogs = [
     "// WARNING: Mars colonization is critical. Your feelings are optional.",
@@ -249,11 +295,22 @@
   let emoDist = 0;
   let emoTimer = null;
   let alertTimer = null;
+  let userLat = null;
+  let userLon = null;
+  let locSourceText = "";
 
+  // ——— All possible Elon locations ———
   const locations = [
-    { name: "Starbase, TX",        lat: 25.9971, lon: -97.1561 },
-    { name: "Fremont Factory, CA", lat: 37.5485, lon: -121.9886 },
-    { name: "Austin HQ, TX",       lat: 30.2672, lon: -97.7431 }
+    // Earth
+    { name: "Starbase / Boca Chica, TX", lat: 25.9971, lon: -97.1561,  type: "earth" },
+    { name: "SpaceX HQ, Hawthorne, CA", lat: 33.9207, lon: -118.3280, type: "earth" },
+    { name: "Tesla Fremont Factory, CA", lat: 37.5485, lon: -121.9886, type: "earth" },
+    { name: "Tesla Gigafactory, Austin", lat: 30.2211, lon: -97.6317,  type: "earth" },
+    { name: "Tesla Shanghai, China",     lat: 31.0969, lon: 121.9309,  type: "earth" },
+    { name: "Tesla Berlin, Germany",     lat: 52.3906, lon: 13.7872,   type: "earth" },
+    // Space
+    { name: "The Moon",  type: "space", baseKm: 384400,     driftKm: 21000  },
+    { name: "Mars",      type: "space", baseKm: 225000000,  driftKm: 50000000 }
   ];
 
   function playBeepSafe() {
@@ -296,21 +353,48 @@
   }
 
   function formatDistance(meters) {
+    if (meters >= 1e9) {
+      return (meters / 1e9).toFixed(1) + " million km";
+    }
+    if (meters >= 1e6) {
+      return (meters / 1000).toFixed(0) + " km";
+    }
     if (meters >= 1000) {
       return (meters / 1000).toFixed(1) + " km";
     }
     return Math.floor(meters) + " m";
   }
 
-  function showDistance(lat, lon, source) {
-    const idx = Math.floor(Date.now() / 60000) % locations.length;
-    const loc = locations[idx];
-    const dist = metersBetween(lat, lon, loc.lat, loc.lon);
-    distEl.innerText = loc.name + "\n" + formatDistance(dist) + " away";
-    locSrc.innerText = "Source: " + source;
+  function getSelectedLocation() {
+    return locations[parseInt(locSelect.value)];
   }
 
-  // ——— IP-based fallback using free APIs ———
+  function updateDisplay() {
+    if (userLat === null || userLon === null) return;
+
+    const loc = getSelectedLocation();
+
+    if (loc.type === "earth") {
+      const dist = metersBetween(userLat, userLon, loc.lat, loc.lon);
+      distEl.innerText = loc.name + "\n" + formatDistance(dist) + " away";
+    } else {
+      // Space: use base distance + a slow sine-wave drift to feel alive
+      const t = Date.now() / 1000;
+      const drift = Math.sin(t / 30) * loc.driftKm;
+      const totalKm = loc.baseKm + drift;
+      const displayKm = totalKm >= 1e6
+        ? (totalKm / 1e6).toFixed(2) + " million km"
+        : Math.round(totalKm).toLocaleString() + " km";
+      distEl.innerText = loc.name + "\n" + displayKm + " away";
+    }
+
+    locSrc.innerText = "Your location: " + locSourceText;
+  }
+
+  // Update display when user switches location
+  locSelect.addEventListener('change', updateDisplay);
+
+  // ——— IP-based fallback ———
   function fallbackIPLocation() {
     distEl.innerText = "GPS unavailable, estimating via IP…";
     locSrc.innerText = "";
@@ -341,16 +425,10 @@
       .then(d => {
         const pos = apis[i].extract(d);
         if (pos) {
-          showDistance(pos.lat, pos.lon, "IP estimate (approximate)");
-          setInterval(() => {
-            fetch(apis[i].url)
-              .then(r => r.json())
-              .then(d2 => {
-                const p2 = apis[i].extract(d2);
-                if (p2) showDistance(p2.lat, p2.lon, "IP estimate (approximate)");
-              })
-              .catch(() => {});
-          }, 30000);
+          userLat = pos.lat;
+          userLon = pos.lon;
+          locSourceText = "IP estimate (approximate)";
+          updateDisplay();
         } else {
           tryNextAPI(apis, i + 1);
         }
@@ -373,12 +451,19 @@
 
     navigator.geolocation.getCurrentPosition(
       pos => {
-        showDistance(pos.coords.latitude, pos.coords.longitude, "GPS (precise)");
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+        locSourceText = "GPS (precise)";
+        updateDisplay();
         retryBtn.style.display = "none";
 
         if (watchId !== null) navigator.geolocation.clearWatch(watchId);
         watchId = navigator.geolocation.watchPosition(
-          p => showDistance(p.coords.latitude, p.coords.longitude, "GPS (precise)"),
+          p => {
+            userLat = p.coords.latitude;
+            userLon = p.coords.longitude;
+            updateDisplay();
+          },
           () => {},
           { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
         );
@@ -397,6 +482,13 @@
       { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
   }
+
+  // Keep space distances drifting
+  setInterval(() => {
+    if (userLat !== null && getSelectedLocation().type === "space") {
+      updateDisplay();
+    }
+  }, 1000);
 
   // ——— Button handlers ———
   startBtn.addEventListener('click', () => {

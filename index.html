@@ -60,14 +60,14 @@
     #app > * { position: relative; z-index: 1; }
 
     h1 {
-      font-size: clamp(22px, 5vw, 42px);
+      font-size: clamp(20px, 5vw, 38px);
       text-shadow: 0 0 20px #ff00ff, 0 0 60px rgba(255,0,255,.3);
       margin: 0 0 12px;
       letter-spacing: 2px;
     }
 
     #dist {
-      font-size: clamp(28px, 7vw, 50px);
+      font-size: clamp(24px, 6vw, 46px);
       text-shadow: 0 0 20px #ff00ff;
       margin: 20px 0;
       white-space: pre-line;
@@ -75,21 +75,21 @@
     }
 
     #emo {
-      font-size: clamp(18px, 4vw, 30px);
+      font-size: clamp(16px, 3.5vw, 26px);
       margin: 12px 0;
     }
 
     .alert {
-      font-size: clamp(16px, 3.5vw, 24px);
+      font-size: clamp(14px, 3vw, 22px);
       color: #f00;
       opacity: 0;
       transition: opacity 1s;
       margin-top: 10px;
     }
 
-    #startBtn {
-      margin-top: 18px;
-      font-size: 18px;
+    .btn {
+      margin-top: 14px;
+      font-size: 16px;
       padding: 12px 28px;
       border: 1px solid #ff00ff;
       background: rgba(255,0,255,.1);
@@ -99,17 +99,27 @@
       backdrop-filter: blur(4px);
       transition: background .3s, box-shadow .3s;
       letter-spacing: 1px;
+      font-family: 'Courier New', monospace;
     }
 
-    #startBtn:hover:not(:disabled) {
+    .btn:hover:not(:disabled) {
       background: rgba(255,0,255,.25);
       box-shadow: 0 0 20px rgba(255,0,255,.4);
     }
 
-    #startBtn:disabled {
+    .btn:disabled {
       opacity: .5;
       cursor: default;
     }
+
+    #btnRow {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #retryBtn { display: none; }
 
     #hint {
       opacity: .75;
@@ -122,13 +132,19 @@
       border-radius: 8px;
     }
 
+    #locSrc {
+      font-size: clamp(10px, 1.8vw, 12px);
+      opacity: .5;
+      margin-top: 6px;
+    }
+
     .log {
       position: absolute;
       left: 0; right: 0;
       bottom: 18px;
       padding: 0 18px;
 
-      font-size: clamp(14px, 2.8vw, 20px);
+      font-size: clamp(13px, 2.6vw, 18px);
       opacity: .9;
       pointer-events: none;
 
@@ -154,14 +170,19 @@
 
 <div id="app">
   <h1>ETERNAL DISTANCE TO ELON</h1>
-  <div id="dist">Click "Start" to request location…</div>
+  <div id="dist">Click "Start" to begin…</div>
   <div id="emo">Emotional distance: 0 AU</div>
   <div class="alert" id="alert">He is getting farther… 11 km/s</div>
 
-  <button id="startBtn">Start</button>
-  <div id="hint">
-    Geolocation requires HTTPS. Click "Start" and allow location access in your browser.
+  <div id="btnRow">
+    <button id="startBtn" class="btn">Start</button>
+    <button id="retryBtn" class="btn">Retry Location</button>
   </div>
+  <div id="hint">
+    Click "Start" and allow location access when prompted.<br>
+    If location is denied, your IP address will be used to estimate distance.
+  </div>
+  <div id="locSrc"></div>
 
   <div id="log" class="log"></div>
 
@@ -176,7 +197,9 @@
   const alertEl  = document.getElementById('alert');
   const beep     = document.getElementById('beep');
   const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
   const logEl    = document.getElementById('log');
+  const locSrc   = document.getElementById('locSrc');
 
   const savageLogs = [
     "// WARNING: Mars colonization is critical. Your feelings are optional.",
@@ -279,40 +302,114 @@
     return Math.floor(meters) + " m";
   }
 
-  function startGeolocation() {
-    if (!navigator.geolocation) {
-      distEl.innerText = "Geolocation not supported.\nEven your browser refuses to help.";
+  function showDistance(lat, lon, source) {
+    const idx = Math.floor(Date.now() / 60000) % locations.length;
+    const loc = locations[idx];
+    const dist = metersBetween(lat, lon, loc.lat, loc.lon);
+    distEl.innerText = loc.name + "\n" + formatDistance(dist) + " away";
+    locSrc.innerText = "Source: " + source;
+  }
+
+  // ——— IP-based fallback using free APIs ———
+  function fallbackIPLocation() {
+    distEl.innerText = "GPS unavailable, estimating via IP…";
+    locSrc.innerText = "";
+
+    const apis = [
+      {
+        url: "https://ipapi.co/json/",
+        extract: d => d.latitude && d.longitude ? { lat: d.latitude, lon: d.longitude } : null
+      },
+      {
+        url: "https://ipwho.is/",
+        extract: d => d.latitude && d.longitude ? { lat: d.latitude, lon: d.longitude } : null
+      }
+    ];
+
+    tryNextAPI(apis, 0);
+  }
+
+  function tryNextAPI(apis, i) {
+    if (i >= apis.length) {
+      distEl.innerText = "Could not determine location.\nTap \"Retry Location\" after allowing permission.";
+      retryBtn.style.display = "inline-block";
       return;
     }
 
-    navigator.geolocation.watchPosition(
+    fetch(apis[i].url)
+      .then(r => r.json())
+      .then(d => {
+        const pos = apis[i].extract(d);
+        if (pos) {
+          showDistance(pos.lat, pos.lon, "IP estimate (approximate)");
+          setInterval(() => {
+            fetch(apis[i].url)
+              .then(r => r.json())
+              .then(d2 => {
+                const p2 = apis[i].extract(d2);
+                if (p2) showDistance(p2.lat, p2.lon, "IP estimate (approximate)");
+              })
+              .catch(() => {});
+          }, 30000);
+        } else {
+          tryNextAPI(apis, i + 1);
+        }
+      })
+      .catch(() => tryNextAPI(apis, i + 1));
+  }
+
+  // ——— GPS geolocation ———
+  let watchId = null;
+
+  function startGeolocation() {
+    distEl.innerText = "Requesting location access…";
+    locSrc.innerText = "";
+
+    if (!navigator.geolocation) {
+      distEl.innerText = "Geolocation not supported.\nFalling back to IP…";
+      fallbackIPLocation();
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
       pos => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
+        showDistance(pos.coords.latitude, pos.coords.longitude, "GPS (precise)");
+        retryBtn.style.display = "none";
 
-        const idx = Math.floor(Date.now() / 60000) % locations.length;
-        const loc = locations[idx];
-
-        const dist = metersBetween(lat, lon, loc.lat, loc.lon);
-        distEl.innerText = loc.name + "\n" + formatDistance(dist) + " away";
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        watchId = navigator.geolocation.watchPosition(
+          p => showDistance(p.coords.latitude, p.coords.longitude, "GPS (precise)"),
+          () => {},
+          { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+        );
       },
       err => {
-        distEl.innerText =
-          "Location unavailable (" + err.code + ").\n" +
-          (location.protocol !== "https:" && location.hostname !== "localhost"
-            ? "Tip: geolocation requires HTTPS or localhost."
-            : "Tip: check browser permission settings.");
+        retryBtn.style.display = "inline-block";
+        if (err.code === 1) {
+          distEl.innerText = "Location permission denied.\nFalling back to IP estimate…";
+        } else if (err.code === 2) {
+          distEl.innerText = "Location unavailable.\nFalling back to IP estimate…";
+        } else {
+          distEl.innerText = "Location timed out.\nFalling back to IP estimate…";
+        }
+        fallbackIPLocation();
       },
-      { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
   }
 
+  // ——— Button handlers ———
   startBtn.addEventListener('click', () => {
     startBtn.disabled = true;
     startBtn.innerText = "Running…";
     playBeepSafe();
     startEmotionalDistance();
     startAlert();
+    startGeolocation();
+  });
+
+  retryBtn.addEventListener('click', () => {
+    retryBtn.style.display = "none";
     startGeolocation();
   });
 })();
